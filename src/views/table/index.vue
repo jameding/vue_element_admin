@@ -1,64 +1,23 @@
 <template>
   <div class="app-container">
-    <el-table
-      v-loading="listLoading"
-      :data="list"
-      element-loading-text="Loading"
-      border
-      fit
-      highlight-current-row
-    >
-      <el-table-column align="center" label="ID" width="95">
-        <template slot-scope="scope">
-          {{ scope.$index }}
-        </template>
-      </el-table-column>
-      <el-table-column label="Title">
-        <template slot-scope="scope">
-          {{ scope.row.title }}
-        </template>
-      </el-table-column>
-      <el-table-column label="Author" width="110" align="center">
-        <template slot-scope="scope">
-          <span>{{ scope.row.author }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="Pageviews" width="110" align="center">
-        <template slot-scope="scope">
-          {{ scope.row.pageviews }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        class-name="status-col"
-        label="Status"
-        width="110"
-        align="center"
-      >
-        <template slot-scope="scope">
-          <el-tag :type="scope.row.status | statusFilter">{{
-            scope.row.status
-          }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column
-        align="center"
-        prop="created_at"
-        label="Display_time"
-        width="200"
-      >
-        <template slot-scope="scope">
-          <i class="el-icon-time"></i>
-          <span>{{ scope.row.display_time }}</span>
-        </template>
-      </el-table-column>
-    </el-table>
+    <TableList
+      :table-data="userList"
+      :handle-size-change="handleSizeChange"
+      :handle-current-change="handleCurrentChange"
+      :columns="columns"
+      :page-size="pageNum"
+      :total-num="total"
+    />
   </div>
 </template>
 
 <script>
 import { getList } from '@/api/table';
-
+import TableList from '@/components/Table/index';
 export default {
+  components: {
+    TableList
+  },
   filters: {
     statusFilter(status) {
       const statusMap = {
@@ -71,20 +30,141 @@ export default {
   },
   data() {
     return {
-      list: null,
-      listLoading: true
+      listLoading: true,
+      // 列表设置
+      columns: [
+        {
+          prop: 'phoneNumber',
+          label: '手机',
+          align: 'center',
+          width: '120'
+        },
+        {
+          prop: 'name',
+          label: '用户名',
+          align: 'center',
+          width: '120'
+        },
+        {
+          prop: 'stage',
+          label: '可看活动阶段',
+          align: 'center'
+        },
+        {
+          prop: 'group',
+          label: '可看组别',
+          align: 'center',
+          class: 'line-clamp-3',
+          title: true
+        },
+        {
+          prop: 'canDivision',
+          label: '操作',
+          align: 'center',
+          width: '240',
+          render: (h, params) => {
+            // console.log(params.row);
+            // 展示自定义内容按钮
+            const buttonJson = [
+              h(
+                'el-button',
+                {
+                  props: {
+                    type: 'primary',
+                    size: 'mini'
+                  },
+                  on: {
+                    click: () => {
+                      this.userInfo = params.row;
+                      this.editDialogShow = true;
+                    }
+                  }
+                },
+                '编辑'
+              ),
+              h(
+                'el-button',
+                {
+                  props: {
+                    type: 'danger',
+                    size: 'mini'
+                  },
+                  on: {
+                    click: () => {
+                      console.log('删除');
+                      this.$confirm(
+                        '此操作将永久删除该用户, 是否继续?',
+                        '提示',
+                        {
+                          confirmButtonText: '确定',
+                          cancelButtonText: '取消',
+                          type: 'warning'
+                        }
+                      )
+                        .then(() => {
+                          this.delUser(params.row.phoneNumber);
+                        })
+                        .catch(() => {
+                          this.$message({
+                            type: 'info',
+                            message: '已取消删除'
+                          });
+                        });
+                    }
+                  }
+                },
+                '删除'
+              )
+            ];
+            return h('span', buttonJson);
+            // return h('span', params.row.name);
+            // return h('el-progress', {
+            //   props: {
+            //     textInside: true,
+            //     strokeWidth: 18,
+            //     percentage: params.row.name
+            //   }
+            // });
+          }
+        }
+      ],
+      // 列表数据
+      userList: []
     };
   },
   created() {
-    this.fetchData();
+    this.getData();
   },
   methods: {
-    fetchData() {
-      this.listLoading = true;
-      getList().then(response => {
-        this.list = response.data.items;
-        this.listLoading = false;
-      });
+    // 获取列表数据
+    async getData() {
+      try {
+        this.listLoading = true;
+        // 查询数据信息
+        // const prams = { page: this.page, pageNum: this.pageNum };
+        // const res = await getUserInfo(prams);
+        const res = {
+          data: {
+            count: 100,
+            userList: [
+              {
+                phoneNumber: '189912312',
+                name: 'jame,d',
+                stage: '学校',
+                group: '组别'
+              }
+            ]
+          }
+        };
+        console.log('数据查询完成', res);
+        if (this.page === 1) {
+          this.total = res.data.count;
+        }
+
+        this.userList = res.data.userList;
+      } catch (e) {
+        console.log(e);
+      }
     }
   }
 };
